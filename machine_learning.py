@@ -1,42 +1,35 @@
 from __future__ import print_function
 from rdkit import Chem
 from rdkit.Chem import PandasTools
-from rdkit.Chem import Draw
 from rdkit.Chem import Descriptors
 
+#Lokacija .sdf datoteke z zapisi molekul
+file = r"C:\*****\******\*******\*****\molekule.sdf"
 
-file = r"C:\Users\blaz-\PycharmProjects\lek_ml\molekule.sdf"
-"""
-mol = pybel.readfile("fa", file)
-print(mol)
-for i in mol:
-    print(i)
-
-suppl = Chem.SDMolSupplier(file)
-
-for i in range(10):
-    print(suppl[i].GetNumAtoms())
-    ms = [x for x in suppl if x is not None]
-    for m in ms: tmp=AllChem.Compute2DCoords(m)
-"""
-#Draw.MolToFile(ms[0], r"C:\Users\blaz-\PycharmProjects\lek_ml\molekul1.png")
-#Draw.MolToFile(ms[1], r"C:\Users\blaz-\PycharmProjects\lek_ml\molekula2.png")
-
-
+#Pandas Dataframe object iz .sdf datoteke
 BRDLigs = PandasTools.LoadSDF(file)
-#print(BRDLigs.columns)
 BRDLigs = BRDLigs.drop(["ROMol", "ID"], axis=1)
 
+
+#Loopanje čez SMILES zapise molekul ter izračun deskriptorjev za posamezne molekule
 j = 0
 for i in BRDLigs["smiles"]:
+    
+    #2D struktura
     molekula_smiles =  Chem.MolFromSmiles(i)
-    BRDLigs.at[j, "TPSA"] = Descriptors.TPSA(molekula_smiles)
-    BRDLigs.at[j, "logP"] = Descriptors.MolLogP(molekula_smiles)
-    BRDLigs.at[j, "MW"] = Descriptors.MolWt(molekula_smiles)
-    BRDLigs.at[j, "Hdonors"] = Descriptors.NumHDonors(molekula_smiles)
-    BRDLigs.at[j, "Hacceptors"] = Descriptors.NumHAcceptors(molekula_smiles)
-    BRDLigs.at[j, "Rotbonds"] = Descriptors.NumRotatableBonds(molekula_smiles)
-
+    BRDLigs.at[j, "TPSA"] = Descriptors.TPSA(molekula_smiles) #Topological surface area
+    BRDLigs.at[j, "logP"] = Descriptors.MolLogP(molekula_smiles) #LogP
+    BRDLigs.at[j, "MW"] = Descriptors.MolWt(molekula_smiles) #Molecular Weight
+    BRDLigs.at[j, "Hdonors"] = Descriptors.NumHDonors(molekula_smiles) #H donors
+    BRDLigs.at[j, "Hacceptors"] = Descriptors.NumHAcceptors(molekula_smiles) #H acceptors
+    BRDLigs.at[j, "Rotbonds"] = Descriptors.NumRotatableBonds(molekula_smiles) #Rotating bonds
+    
+    #3D struktura    
+    molekula_smiles2 = Chem.AddHs(molekula_smiles) #Doda H atome na molekulo
+    Chem.AllChem.EmbedMolecule(molekula_smiles2) #Nevem kaj naredi ampak rabiš
+    Chem.AllChem.MMFFOptimizeMolecule(molekula_smiles2) #Optimizacija nardi 2-3% razlike v vrednosti če jo uporabis
+    BRDLigs.at[j, "Molvolume"] = Chem.AllChem.ComputeMolVolume(molekula_smiles2) #molekulski volumen
+    
     j += 1
 
 print(BRDLigs.columns)
